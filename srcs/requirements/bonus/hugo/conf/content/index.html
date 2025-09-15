@@ -1,0 +1,162 @@
+---
+title: "Inception"
+subtitle: "Project Checklist"
+copyright: "Inception by aduvilla - 2025"
+date: 2024-04-09
+draft: false
+---
+
+<section id="container-services">
+    <h2>Container Services</h2>
+    <h3>NGINX</h3>
+    <ul>
+        <li>
+            <input type="checkbox" id="nginx-running">
+            <label for="nginx-running">
+                Nginx container is running ->
+                <code id="code-nginx-running">docker ps -a</code>
+                <button onclick="copyToClipboard('code-nginx-running')">📋</button>
+            </label>
+        </li>
+        <li><input type="checkbox" id="nginx-access"><label for="nginx-access">Access via <a href="https://aduvilla.42.fr" target="_blank">https://aduvilla.42.fr</a> and <a href="https://127.0.0.1" target="_blank">https://127.0.0.1</a> works.</label></li>
+        <li><input type="checkbox" id="nginx-port443"><label for="nginx-port443">Only port 443 is exposed on the host for Nginx. Access via <a href="http://aduvilla.42.fr" target="_blank">http://aduvilla.42.fr</a> fails or redirects.</label></li>
+        <li>
+            <input type="checkbox" id="nginx-tls"><label for="nginx-tls">TLSv1.2 or TLSv1.3 only:</label>
+            <ul>
+                <li>
+                    <code id="code-tls-fail">curl -v --tlsv1.1 --tls-max 1.1 https://aduvilla.42.fr</code>
+                    <button onclick="copyToClipboard('code-tls-fail')">📋</button> -> Fails
+                </li>
+                <li>
+                    <code id="code-tls-success">curl -v --tlsv1.3 --tls-max 1.3 https://aduvilla.42.fr</code>
+                    <button onclick="copyToClipboard('code-tls-success')">📋</button> -> Handshake Succeeds
+                </li>
+            </ul>
+        </li>
+        <li>
+            <input type="checkbox" id="nginx-entrypoint"><label for="nginx-entrypoint">Nginx is the only entry point to the infrastructure from the outside:</label>
+            <ul>
+                <li>Check Nginx HTTPS (443) -> Succeeds</li>
+                <li>Check Redis (6379) -> Fails</li>
+                <li>Check MariaDB (3306) -> Fails</li>
+                <li>Check Nginx HTTP (80) -> Fails</li>
+                <li>Check PHP-FPM (9000) -> Fails</li>
+                <li><code id="code-nginx-entrypoint">nc -zv localhost 443 6379 3306 80 9000</code> <button onclick="copyToClipboard('code-nginx-entrypoint')">📋</button></li>
+            </ul>
+        </li>
+    </ul>
+    <h3>WordPress</h3>
+    <ul>
+        <li>
+            <input type="checkbox" id="wp-running">
+            <label for="wp-running">
+                WordPress container is running ->
+                <code id="code-wp-running">docker ps -a</code>
+                <button onclick="copyToClipboard('code-wp-running')">📋</button>
+            </label>
+        </li>
+        <li><input type="checkbox" id="wp-phpfpm"><label for="wp-phpfpm">Contains only PHP-FPM (no Nginx/Apache) -> <code id="code-wp-phpfpm">make ps</code> <button onclick="copyToClipboard('code-wp-phpfpm')">📋</button> (docker exec wordpress ps aux).</label></li>
+        <li><input type="checkbox" id="wp-install"><label for="wp-install">WordPress site is installed and accessible via Nginx.</label></li>
+        <li>
+            <input type="checkbox" id="wp-users"><label for="wp-users">WordPress users <a href="https://aduvilla.42.fr/wp-admin/users.php" target="_blank">https://aduvilla.42.fr/wp-admin/users.php</a></label>
+            <ul>
+                <li>At least 2 users exist.</li>
+                <li>One user is an Administrator.</li>
+                <li>The admin's name does NOT contain 'admin', 'Admin', 'administrator', 'Administrator'.</li>
+            </ul>
+        </li>
+    </ul>
+    <h3>MariaDB</h3>
+    <ul>
+        <li>
+            <input type="checkbox" id="db-running">
+            <label for="db-running">
+                MariaDB container is running ->
+                <code id="code-db-running">docker ps -a</code>
+                <button onclick="copyToClipboard('code-db-running')">📋</button>
+            </label>
+        </li>
+        <li><input type="checkbox" id="db-only"><label for="db-only">Contains only MariaDB (no Nginx/Apache) -> <code id="code-db-only">make ps</code> <button onclick="copyToClipboard('code-db-only')">📋</button> (docker exec mariadb ps aux).</label></li>
+        <li><input type="checkbox" id="db-connect"><label for="db-connect">WordPress can connect to the database (the site works).</label></li>
+        <li>
+            <input type="checkbox" id="db-tests"><label for="db-tests">Test MariaDB connection and display WordPress users:</label>
+            <ul>
+                <li><code id="code-db-connect">docker exec -it mariadb mysql -u root -p</code> <button onclick="copyToClipboard('code-db-connect')">📋</button> -> Connect to MariaDB.</li>
+                <li><code id="code-db-use">USE wordpress_db;</code> <button onclick="copyToClipboard('code-db-use')">📋</button> -> Select the WordPress database.</li>
+                <li><code id="code-db-select">SELECT * FROM wp_users;</code> <button onclick="copyToClipboard('code-db-select')">📋</button> -> Display all WordPress users.</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+
+<section id="volumes">
+    <h2>Volumes</h2>
+    <ul>
+        <li><input type="checkbox" id="vol-ls"><label for="vol-ls">Two volumes exist : one for DB, one for WP files -> <code id="code-vol-ls">docker volume ls</code> <button onclick="copyToClipboard('code-vol-ls')">📋</button></label></li>
+        <li><input type="checkbox" id="vol-persist"><label for="vol-persist">Persistence: Create a WP post -> <code id="code-vol-persist">make down && make</code> <button onclick="copyToClipboard('code-vol-persist')">📋</button> -> The post is still there.</label></li>
+    </ul>
+</section>
+
+<section id="network">
+    <h2>Network</h2>
+    <ul>
+        <li><input type="checkbox" id="net-ls"><label for="net-ls">A custom Docker network exists -> <code id="code-net-ls">docker network ls</code> <button onclick="copyToClipboard('code-net-ls')">📋</button></label></li>
+        <li><input type="checkbox" id="net-inspect"><label for="net-inspect">Containers (Nginx, WP, DB, Bonus) are connected to this network -> <code id="code-net-inspect">docker network inspect inception</code> <button onclick="copyToClipboard('code-net-inspect')">📋</button></label></li>
+    </ul>
+</section>
+
+<section id="security">
+    <h2>Security & Best Practices</h2>
+    <ul>
+        <li><input type="checkbox" id="sec-restart"><label for="sec-restart">Restart policy (<strong>always</strong> or <strong>unless-stopped</strong>) configured for every containers -> <code id="code-sec-restart">docker restart x</code> <button onclick="copyToClipboard('code-sec-restart')">📋</button></label></li>
+        <li><input type="checkbox" id="sec-pid1"><label for="sec-pid1">Verify that PID 1 in each container is correct -> <code id="code-sec-ps">make ps</code> <button onclick="copyToClipboard('code-sec-ps')">📋</button></label></li>
+    </ul>
+</section>
+
+<section id="bonus">
+    <h2>Bonus</h2>
+    <h3>Redis Cache</h3>
+    <ul>
+        <li><input type="checkbox" id="bonus-redis-run"><label for="bonus-redis-run">Redis container is running.</label></li>
+        <li><input type="checkbox" id="bonus-redis-wp"><label for="bonus-redis-wp">Connected and activated in WP Admin (Settings -> Redis -> Status: Connected).</label></li>
+        <li><input type="checkbox" id="bonus-redis-cli"><label for="bonus-redis-cli">Test Redis commands:</label>
+            <ul>
+                <li><code id="code-redis-cli-connect">docker exec -it redis redis-cli</code> <button onclick="copyToClipboard('code-redis-cli-connect')">📋</button> -> Connect to Redis CLI</li>
+                <li><code id="code-redis-auth">AUTH [redis_pwd]</code> <button onclick="copyToClipboard('code-redis-auth')">📋</button> -> Authenticate with password</li>
+                <li><code id="code-redis-monitor">MONITOR</code> <button onclick="copyToClipboard('code-redis-monitor')">📋</button> -> Monitor Redis activity</li>
+            </ul>
+        </li>
+    </ul>
+    <h3>FTP Server</h3>
+    <ul>
+        <li><input type="checkbox" id="bonus-ftp-run"><label for="bonus-ftp-run">FTP container is running.</label></li>
+        <li><input type="checkbox" id="bonus-ftp-rw"><label for="bonus-ftp-rw">File operations (Upload/Download/List) work:</label>
+            <ul>
+                <li><code id="code-ftp-connect">lftp -u fetep localhost</code> <button onclick="copyToClipboard('code-ftp-connect')">📋</button> -> Connect to the FTP server</li>
+                <li><code id="code-ftp-upload">put inception.html -o ftp/files/inception.html</code> <button onclick="copyToClipboard('code-ftp-upload')">📋</button> -> Upload an HTML page here <a href="https://aduvilla.42.fr/inception.html" target="_blank">https://aduvilla.42.fr/inception.html</a></li>
+                <li><code id="code-ftp-upload2">put front-page.php -o ftp/files/wp-content/themes/twentytwentyfive/front-page.php</code> <button onclick="copyToClipboard('code-ftp-upload2')">📋</button> -> Upload front page <a href="https://aduvilla.42.fr" target="_blank">https://aduvilla.42.fr</a></li>
+                <li><code id="code-ftp-rm">rm ftp/files/inception.html</code> <button onclick="copyToClipboard('code-ftp-rm')">📋</button> -> Remove this page: <a href="https://aduvilla.42.fr/inception.html" target="_blank">https://aduvilla.42.fr/inception.html</a></li>
+                <li><code id="code-ftp-download">get ftp/files/license.txt</code> <button onclick="copyToClipboard('code-ftp-download')">📋</button> -> Download a file</li>
+                <li><code id="code-ftp-exit">bye</code> <button onclick="copyToClipboard('code-ftp-exit')">📋</button> -> Exit the session</li>
+            </ul>
+        </li>
+    </ul>
+    <h3>Adminer</h3>
+    <ul>
+        <li><input type="checkbox" id="bonus-adminer-run"><label for="bonus-adminer-run">Adminer container is running.</label></li>
+        <li><input type="checkbox" id="bonus-adminer-access"><label for="bonus-adminer-access">Adminer interface accessible -> <a href="https://aduvilla.42.fr/adminer/" target="_blank">https://aduvilla.42.fr/adminer/</a></label></li>
+        <li><input type="checkbox" id="bonus-adminer-connect"><label for="bonus-adminer-connect">Connection to MariaDB via Adminer succeeds (Server: <strong>mariadb</strong>).</label></li>
+        <li><input type="checkbox" id="bonus-adminer-tables"><label for="bonus-adminer-tables">WordPress tables can be viewed.</label></li>
+    </ul>
+    <h3>Hugo</h3>
+    <ul>
+        <li><input type="checkbox" id="bonus-hugo-run"><label for="bonus-hugo-run">Hugo container is running.</label></li>
+        <li><input type="checkbox" id="bonus-checklist-nophp"><label for="bonus-checklist-nophp">This site does not use PHP.</label></li>
+    </ul>
+    <h3>Grafana</h3>
+    <ul>
+        <li><input type="checkbox" id="grafana-run"><label for="grafana-run">grafana container is running.</label></li>
+        <li><input type="checkbox" id="grafana-access"><label for="grafana-access">Grafana interface accessible -> <a href="https://aduvilla.42.fr/grafana/" target="_blank">https://aduvilla.42.fr/grafana/</a></label></li>
+        <li><input type="checkbox" id="grafana-justif"><label for="grafana-justif">Justification of its usefulness is ready for the defense.</label></li>
+    </ul>
+</section>

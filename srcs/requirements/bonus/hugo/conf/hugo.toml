@@ -1,0 +1,8 @@
+baseURL = "https://aduvilla.42.fr/hugo/"
+languageCode = "en-us"
+title = "INCEPTION"
+copyright = "Inception by aduvilla - 2025"
+disableKinds = ["RSS", "taxonomy"]
+
+[params]
+	author = "aduvilla"

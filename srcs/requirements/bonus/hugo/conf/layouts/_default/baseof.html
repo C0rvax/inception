@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.LanguageCode | default "en" }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} | Hugo</title>
+    <link rel="stylesheet" href="{{ "style.css" | relURL }}">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <h1>{{ .Site.Title }}</h1>
+        <div>
+            <strong>Project Checklist:</strong>
+            <nav style="display: inline;">
+                <a href="#container-services">Container Services</a>
+                <a href="#volumes">Volumes</a>
+                <a href="#network">Network</a>
+                <a href="#security">Security</a>
+                <a href="#bonus">Bonus</a>
+            </nav>
+        </div>
+        <div style="margin-top: 20px;">
+            <strong>Links:</strong>
+            <nav style="display: inline;">
+                <a href="{{ "/" | relURL }}" target="_blank">Accueil</a>
+                <a href="{{ "/adminer/" | relURL }}" target="_blank">Adminer</a>
+                <a href="{{ "/grafana/" | relURL }}" target="_blank">Grafana</a>
+                <a href="{{ "/wp-admin/" | relURL }}" target="_blank">wp-admin</a>
+            </nav>
+        </div>
+    </header>
+
+    <main style="margin-top: 100px;">
+        {{ block "main" . }}{{ end }}
+    </main>
+
+    <footer>
+        <p>{{ .Site.Copyright }}</p>
+    </footer>
+
+    <div id="copy-success" class="copy-success">Copied to clipboard!</div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const successMessage = document.getElementById('copy-success');
+                successMessage.classList.add('show');
+                setTimeout(() => {
+                    successMessage.classList.remove('show');
+                }, 2000); // Hide after 2 seconds
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,149 @@
+Here is a review of the provided code, focusing on functionality, security, readability, and maintainability:
+
+---
+
+### **Strengths**
+1. **Separation of Concerns**:
+   - The code is well-structured, with clear separation between handlers, services, models, and schemas. This makes the codebase modular and easier to maintain.
+
+2. **Use of Fastify Features**:
+   - The code effectively uses Fastify's features, such as `onRequest` hooks for authentication and schema validation for request payloads.
+
+3. **Error Handling**:
+   - Custom error handling is implemented using `AppError`, which allows for consistent error responses.
+   - The `setErrorHandler` in server.js ensures that unexpected errors are logged and handled gracefully.
+
+4. **JWT and Cookies**:
+   - JWT is used for authentication, and cookies are set with proper options (e.g., expiration). This is a good practice for session management.
+
+5. **Validation with Schemas**:
+   - Schemas are used to validate request payloads (e.g., `registerSchema`, `loginSchema`), ensuring that only valid data is processed.
+
+6. **Database Queries**:
+   - SQL queries are parameterized, which prevents SQL injection attacks.
+
+---
+
+### **Issues and Suggestions**
+
+#### **1. Security**
+- **JWT Expiration Handling**:
+  - In authHandlers.js, the expiration date for the cookie is derived from the decoded JWT. Ensure that the JWT expiration is short-lived and refreshed periodically to reduce the risk of token theft.
+  - Consider implementing a refresh token mechanism for better security.
+
+- **Password Storage**:
+  - Passwords are hashed using `bcrypt`, which is good. Ensure that the hashing rounds (e.g., `saltRounds`) are set to a secure value (e.g., 10 or higher).
+
+- **Role-Based Access Control**:
+  - Some handlers (e.g., `getAllFriendshipsHandler`) mention admin functionality but lack role-based access control. Add checks to ensure only authorized users can access sensitive endpoints.
+
+- **CSRF Protection**:
+  - If cookies are used for authentication, consider implementing CSRF protection to prevent cross-site request forgery attacks.
+
+---
+
+#### **2. Error Handling**
+- **Error Messages**:
+  - Some error messages (e.g., "Invalid friendship ID format") are hardcoded in the handlers. Consider centralizing error messages in a constants file for consistency and easier localization.
+
+- **Unhandled Errors**:
+  - In some places, errors are logged but not re-thrown or handled properly (e.g., `updateUserInDb` in userModel.js). Ensure that all errors are either handled or propagated to the global error handler.
+
+---
+
+#### **3. Code Readability and Maintainability**
+- **Redundant Comments**:
+  - Some comments (e.g., "Gère les requêtes Fastify (req, reply)") are redundant and do not add value. Remove unnecessary comments to improve readability.
+
+- **Consistent Logging**:
+  - Logging is used inconsistently across the codebase. For example, some handlers log actions (e.g., `req.log.info`), while others do not. Standardize logging to ensure consistent debugging and monitoring.
+
+- **Magic Numbers and Strings**:
+  - Avoid hardcoding values like `400` (Bad Request) or `401` (Unauthorized). Use constants or enums for HTTP status codes.
+
+- **Repeated Logic**:
+  - The `acceptFriendRequestHandler`, `declineFriendRequestHandler`, and `cancelFriendRequestHandler` share similar logic for parsing `friendshipId`. Extract this logic into a reusable utility function.
+
+---
+
+#### **4. Performance**
+- **Database Queries**:
+  - Some queries (e.g., `getPendingReceivedFriendRequestsInDb` and `getPendingSentFriendRequestsInDb`) fetch all rows and then map them into objects. Consider optimizing these queries to return the desired structure directly from the database.
+
+- **Pagination**:
+  - For endpoints that return lists (e.g., `getFriends`, `getReceivedFriendRequests`), implement pagination to avoid performance issues with large datasets.
+
+---
+
+#### **5. Scalability**
+- **Environment Variables**:
+  - Ensure that sensitive values like `jwtToken` and database connection strings are stored securely in environment variables and not hardcoded.
+
+- **Dockerfile**:
+  - The Dockerfile does not expose any ports (`EXPOSE` is commented out). Ensure that the correct port is exposed for the container to function properly.
+
+---
+
+### **Specific Suggestions**
+
+#### **1. authHandlers.js**
+- **Current Code**:
+  ```javascript
+  reply.setCookie(jwtToken, token, {
+      ...cookieOptions,
+      expires: new Date(decodedToken.exp * 1000),
+  });
+  ```
+- **Suggestion**:
+  - Add `httpOnly` and `secure` flags to the cookie options for better security:
+    ```javascript
+    reply.setCookie(jwtToken, token, {
+        ...cookieOptions,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        expires: new Date(decodedToken.exp * 1000),
+    });
+    ```
+
+#### **2. friendModel.js**
+- **Current Code**:
+  ```javascript
+  return rows.map(row => ({
+      friendship_id: row.friendship_id,
+      created_at: row.created_at,
+      requester: {
+          id: row.id,
+          username: row.username,
+          email: row.email,
+          display_name: row.display_name,
+          avatar_url: row.avatar_url,
+      },
+  }));
+  ```
+- **Suggestion**:
+  - Optimize the SQL query to return the desired structure directly, reducing the need for post-processing in JavaScript.
+
+#### **3. friendsHandlers.js**
+- **Current Code**:
+  ```javascript
+  const friendshipId = parseInt(req.params.friendshipId, 10);
+  if (isNaN(friendshipId)) {
+      throw new AppError('Invalid friendship ID format.', 400);
+  }
+  ```
+- **Suggestion**:
+  - Use Fastify's schema validation to handle this instead of manually parsing and validating the parameter.
+
+---
+
+### **6. Testing**
+- **Unit Tests**:
+  - Ensure that unit tests cover all services and models, especially for critical functions like `loginUser` and `createUserAccount`.
+
+- **Integration Tests**:
+  - Add integration tests for the API endpoints to verify that the handlers, services, and models work together as expected.
+
+---
+
+### **Summary**
+The codebase is well-structured and demonstrates good practices in many areas, such as modularity, validation, and error handling. However, there are areas for improvement, particularly in security, error handling, and performance. Addressing these issues will make the application more robust, maintainable, and scalable.

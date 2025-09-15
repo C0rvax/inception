@@ -1,0 +1,189 @@
+volumes:
+  wordpress:
+    name: wordpress
+    driver: local
+    driver_opts:
+      device: /home/${LOGNAME}/data/wordpress
+      o: bind
+      type: none
+
+  mariadb:
+    name: mariadb
+    driver: local
+    driver_opts:
+      device: /home/${LOGNAME}/data/mariadb
+      o: bind
+      type: none
+
+networks:
+  inception:
+    name: inception
+    driver: bridge
+
+secrets:
+  db_root_pwd:
+    file: ../secrets/db_root_pwd.txt
+  db_user_pwd:
+    file: ../secrets/db_user_pwd.txt
+  wp_adm_pwd:
+    file: ../secrets/wp_adm_pwd.txt
+  wp_author_pwd:
+    file: ../secrets/wp_author_pwd.txt
+  redis_pwd:
+    file: ../secrets/redis_pwd.txt
+  ftp_pwd:
+    file: ../secrets/ftp_pwd.txt
+  gf_admin_pwd:
+    file: ../secrets/gf_admin_pwd.txt
+  gf_db_pwd:
+    file: ../secrets/gf_db_pwd.txt
+
+services:
+  nginx:
+    build: ./requirements/nginx/
+    container_name: nginx
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress:/var/www/html
+    env_file: .env
+    depends_on:
+      - wordpress
+    networks:
+      - inception
+    restart: always
+
+  wordpress:
+    build: ./requirements/wordpress/
+    container_name: wordpress
+    secrets:
+      - wp_adm_pwd
+      - wp_author_pwd
+      - redis_pwd
+      - db_user_pwd
+    volumes:
+      - wordpress:/var/www/html
+    env_file: .env
+    environment:
+      - WP_ADM_PWD_FILE=/run/secrets/wp_adm_pwd
+      - WP_AUTHOR_PWD_FILE=/run/secrets/wp_author_pwd
+      - REDIS_PWD_FILE=/run/secrets/redis_pwd
+      - DB_USER_PWD_FILE=/run/secrets/db_user_pwd
+    depends_on:
+      - mariadb
+      - redis
+    networks:
+      - inception
+    restart: always
+
+  mariadb:
+    build: ./requirements/mariadb/
+    container_name: mariadb
+    secrets:
+      - db_root_pwd
+      - db_user_pwd
+    volumes:
+      - mariadb:/var/lib/mysql
+    env_file: .env
+    environment:
+      - DB_ROOT_PWD_FILE=/run/secrets/db_root_pwd
+      - DB_USER_PWD_FILE=/run/secrets/db_user_pwd
+    networks:
+      - inception
+    restart: always
+    # healthcheck:
+    #   test: ["CMD", "nc", "-zv", "mariadb", "3306"]
+    #   interval: 3s
+    #   timeout: 5s
+    #   retries: 5
+
+  redis:
+    build: ./requirements/bonus/redis/
+    container_name: redis
+    secrets:
+      - redis_pwd
+    volumes:
+      - wordpress:/var/www/html
+    env_file: .env
+    environment:
+      - REDIS_PWD_FILE=/run/secrets/redis_pwd
+    networks:
+      - inception
+    # healthcheck:
+    #   test: ["CMD", "redis-cli", "ping"] # ping Redis
+    #   interval: 3s
+    #   timeout: 5s
+    #   retries: 5
+    restart: always
+
+  ftp:
+    build: ./requirements/bonus/ftp/
+    container_name: ftp
+    secrets:
+      - ftp_pwd
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009" # Pasive ports
+    env_file: .env
+    environment:
+      - FTP_PWD_FILE=/run/secrets/ftp_pwd
+    volumes:
+      - wordpress:/home/fetep/ftp/files
+    depends_on:
+      - wordpress
+    networks:
+      - inception
+    restart: always
+
+  adminer:
+    build: ./requirements/bonus/adminer/
+    container_name: adminer
+    depends_on:
+      - mariadb
+    networks:
+      - inception
+    restart: always
+
+  grafana:
+    build: ./requirements/bonus/grafana/
+    container_name: grafana
+    secrets:
+      - gf_admin_pwd
+      - gf_db_pwd
+    depends_on:
+        - mariadb
+        - prometheus
+    env_file: .env
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/gf_admin_pwd
+      - GF_DATABASE_PASSWORD__FILE=/run/secrets/gf_db_pwd
+    networks:
+      - inception
+    restart: always
+
+  hugo:
+    build: ./requirements/bonus/hugo/
+    container_name: hugo
+    networks:
+      - inception
+    restart: always
+
+  prometheus:
+    build: ./requirements/bonus/prometheus/
+    container_name: prometheus
+    networks:
+      - inception
+    restart: always
+
+  cadvisor:
+    build: ./requirements/bonus/cadvisor/
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - inception
+    restart: always
